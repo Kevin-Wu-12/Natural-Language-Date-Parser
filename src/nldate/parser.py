@@ -45,9 +45,9 @@ def parse(s: str, today: date | None = None) -> date:
 
     text = _normalize(s)
 
-    numeric = re.fullmatch(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", text)
-    if numeric:
-        return date(int(numeric.group(1)), int(numeric.group(2)), int(numeric.group(3)))
+    absolute = _parse_absolute_date(text)
+    if absolute is not None:
+        return absolute
 
     if text == "today":
         return today
@@ -55,6 +55,14 @@ def parse(s: str, today: date | None = None) -> date:
         return today + timedelta(days=1)
     if text == "yesterday":
         return today - timedelta(days=1)
+
+    match = re.fullmatch(r"next (\w+)", text)
+    if match and match.group(1) in WEEKDAYS:
+        return _next_weekday(today, WEEKDAYS[match.group(1)])
+
+    match = re.fullmatch(r"last (\w+)", text)
+    if match and match.group(1) in WEEKDAYS:
+        return _last_weekday(today, WEEKDAYS[match.group(1)])
 
     match = re.fullmatch(rf"in ({NUM_PATTERN}) (days?|weeks?|months?|years?)", text)
     if match:
@@ -79,7 +87,12 @@ def parse(s: str, today: date | None = None) -> date:
             amount *= -1
         return _add_time(parse(match.group(4), today), amount, match.group(2))
 
-    match = re.fullmatch(rf"({NUM_PATTERN}) (days?|weeks?|months?|years?) and ({NUM_PATTERN}) (days?|weeks?|months?|years?) (after|before|from) (.+)", text)
+    match = re.fullmatch(
+        rf"({NUM_PATTERN}) (days?|weeks?|months?|years?)(?:,| and) "
+        rf"({NUM_PATTERN}) (days?|weeks?|months?|years?) "
+        r"(after|before|from) (.+)",
+        text,
+    )
     if match:
         amount1 = _to_int(match.group(1))
         unit1 = match.group(2)
@@ -92,32 +105,47 @@ def parse(s: str, today: date | None = None) -> date:
         result = _add_time(base, sign * amount1, unit1)
         return _add_time(result, sign * amount2, unit2)
 
-    match = re.fullmatch(r"next (\w+)", text)
-    if match and match.group(1) in WEEKDAYS:
-        return _next_weekday(today, WEEKDAYS[match.group(1)])
-
-    match = re.fullmatch(r"last (\w+)", text)
-    if match and match.group(1) in WEEKDAYS:
-        return _last_weekday(today, WEEKDAYS[match.group(1)])
-
-    absolute = _parse_absolute_date(text)
-    if absolute is not None:
-        return absolute
-
     raise ValueError(f"Could not parse date: {s}")
 
 
 def _normalize(s: str) -> str:
     text = s.lower().strip()
-    text = re.sub(r"\s+", " ", text)
     text = text.replace(".", "")
-    return text
+    return re.sub(r"\s+", " ", text)
 
 
 def _to_int(s: str) -> int:
     if s.isdigit():
         return int(s)
     return NUM_WORDS[s]
+
+
+def _parse_absolute_date(text: str) -> date | None:
+    month_names = "|".join(MONTHS)
+
+    match = re.fullmatch(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", text)
+    if match:
+        return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+
+    match = re.fullmatch(r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})", text)
+    if match:
+        return date(int(match.group(3)), int(match.group(1)), int(match.group(2)))
+
+    match = re.fullmatch(
+        rf"({month_names}) (\d{{1,2}})(?:st|nd|rd|th)?(?:,)? (\d{{4}})",
+        text,
+    )
+    if match:
+        return date(int(match.group(3)), MONTHS[match.group(1)], int(match.group(2)))
+
+    match = re.fullmatch(
+        rf"(\d{{1,2}})(?:st|nd|rd|th)? (?:of )?({month_names})(?:,)? (\d{{4}})",
+        text,
+    )
+    if match:
+        return date(int(match.group(3)), MONTHS[match.group(2)], int(match.group(1)))
+
+    return None
 
 
 def _next_weekday(today: date, weekday: int) -> date:
@@ -134,30 +162,6 @@ def _last_weekday(today: date, weekday: int) -> date:
     return today - timedelta(days=days_back)
 
 
-def _parse_absolute_date(text: str) -> date | None:
-    month_names = "|".join(MONTHS)
-
-    match = re.fullmatch(
-        rf"({month_names}) (\d{{1,2}})(?:st|nd|rd|th)?(?:,)? (\d{{4}})",
-        text,
-    )
-    if match:
-        return date(int(match.group(3)), MONTHS[match.group(1)], int(match.group(2)))
-
-    match = re.fullmatch(
-        rf"(\d{{1,2}})(?:st|nd|rd|th)? (?:of )?({month_names})(?:,)? (\d{{4}})",
-        text,
-    )
-    if match:
-        return date(int(match.group(3)), MONTHS[match.group(2)], int(match.group(1)))
-
-    match = re.fullmatch(r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})", text)
-    if match:
-        return date(int(match.group(3)), int(match.group(1)), int(match.group(2)))
-
-    return None
-
-
 def _add_time(base: date, amount: int, unit: str) -> date:
     if unit.startswith("day"):
         return base + timedelta(days=amount)
@@ -167,7 +171,6 @@ def _add_time(base: date, amount: int, unit: str) -> date:
         return _add_months(base, amount)
     if unit.startswith("year"):
         return _add_months(base, amount * 12)
-
     raise ValueError(f"Unknown unit: {unit}")
 
 
