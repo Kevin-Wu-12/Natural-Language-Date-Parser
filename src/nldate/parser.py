@@ -49,11 +49,11 @@ def parse(s: str, today: date | None = None) -> date:
 
     text = s.lower().strip()
 
-    iso_match = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", text)
-    if iso_match:
-        year = int(iso_match.group(1))
-        month = int(iso_match.group(2))
-        day = int(iso_match.group(3))
+    numeric_date_match = re.fullmatch(r"(\d{4})[-/](\d{2})[-/](\d{2})", text)
+    if numeric_date_match:
+        year = int(numeric_date_match.group(1))
+        month = int(numeric_date_match.group(2))
+        day = int(numeric_date_match.group(3))
         return date(year, month, day)
 
     if text == "today":
@@ -63,15 +63,24 @@ def parse(s: str, today: date | None = None) -> date:
     if text == "yesterday":
         return today - timedelta(days=1)
 
-    match = re.fullmatch(r"next (monday|tuesday|wednesday|thursday|friday|saturday|sunday)", text)
+    match = re.fullmatch(
+        r"next (monday|tuesday|wednesday|thursday|friday|saturday|sunday)",
+        text,
+    )
     if match:
         return _next_weekday(today, WEEKDAYS[match.group(1)])
 
-    match = re.fullmatch(r"in (\d+|one|two|three|four|five|six|seven|eight|nine|ten) days?", text)
+    match = re.fullmatch(
+        r"in (\d+|one|two|three|four|five|six|seven|eight|nine|ten) days?",
+        text,
+    )
     if match:
         return today + timedelta(days=_to_int(match.group(1)))
 
-    match = re.fullmatch(r"(\d+|one|two|three|four|five|six|seven|eight|nine|ten) days? ago", text)
+    match = re.fullmatch(
+        r"(\d+|one|two|three|four|five|six|seven|eight|nine|ten) days? ago",
+        text,
+    )
     if match:
         return today - timedelta(days=_to_int(match.group(1)))
 
@@ -97,7 +106,6 @@ def parse(s: str, today: date | None = None) -> date:
         return absolute
 
     raise ValueError(f"Could not parse date: {s}")
-
 
 def _to_int(s: str) -> int:
     if s.isdigit():
