@@ -10,14 +10,18 @@ TODAY = date(2025, 11, 10)  # Monday
 def test_today() -> None:
     assert parse("today", TODAY) == date(2025, 11, 10)
 
+
+def test_iso_date() -> None:
+    assert parse("2025-12-04") == date(2025, 12, 4)
+
+
 def test_tomorrow() -> None:
     assert parse("tomorrow", TODAY) == date(2025, 11, 11)
 
+
 def test_days_yes() -> None:
-    assert (
-        parse("5 days before December 1st, 2025")
-        == date(2025, 11, 26)
-    )
+    assert parse("5 days before December 1st, 2025") == date(2025, 11, 26)
+
 
 def test_yesterday() -> None:
     assert parse("yesterday", TODAY) == date(2025, 11, 9)
