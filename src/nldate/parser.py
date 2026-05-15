@@ -49,7 +49,7 @@ def parse(s: str, today: date | None = None) -> date:
 
     text = s.lower().strip()
 
-    numeric_date_match = re.fullmatch(r"(\d{4})[-/](\d{2})[-/](\d{2})", text)
+    numeric_date_match = re.fullmatch(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", text)
     if numeric_date_match:
         year = int(numeric_date_match.group(1))
         month = int(numeric_date_match.group(2))
