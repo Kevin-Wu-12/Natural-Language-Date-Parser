@@ -1,0 +1,36 @@
+[project]
+name = "nldate"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Kevin Wu", email = "kew036@ucsd.edu" }
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+nldate = "nldate:main"
+
+[build-system]
+requires = ["uv_build>=0.11.11,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.1.0",
+    "pytest>=9.0.3",
+    "ruff>=0.15.13",
+]
+
+[tool.mypy]
+strict = true
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
