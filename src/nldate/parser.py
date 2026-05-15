@@ -55,6 +55,10 @@ def parse(s: str, today: date | None = None) -> date:
         return today + timedelta(days=1)
     if text == "yesterday":
         return today - timedelta(days=1)
+    if text == "the day after tomorrow":
+        return today + timedelta(days=2)
+    if text == "the day before yesterday":
+        return today - timedelta(days=2)
 
     match = re.fullmatch(r"next (\w+)", text)
     if match and match.group(1) in WEEKDAYS:
@@ -80,7 +84,8 @@ def parse(s: str, today: date | None = None) -> date:
     if match:
         return _add_time(parse(match.group(3), today), _to_int(match.group(1)), match.group(2))
 
-    match = re.fullmatch(rf"({NUM_PATTERN}) (days?|weeks?|months?|years?) (after|before) (.+)", text)
+    match = re.fullmatch(
+        rf"({NUM_PATTERN}) (days?|weeks?|months?|years?) (after|before) (.+)", text)
     if match:
         amount = _to_int(match.group(1))
         if match.group(3) == "before":
